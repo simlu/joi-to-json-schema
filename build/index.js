@@ -1,10 +1,26 @@
-import assert from 'assert';
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+exports.default = convert;
+
+var _assert = require('assert');
+
+var _assert2 = _interopRequireDefault(_assert);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 // Converter helpers for Joi types.
 
-let TYPES = {
+var TYPES = {
 
-  alternatives: (schema, joi, transformer) => {
+  alternatives: function alternatives(schema, joi, transformer) {
 
     var result = schema.oneOf = [];
 
@@ -28,12 +44,11 @@ let TYPES = {
       if (match.otherwise) {
         result.push(convert(match.otherwise, transformer));
       }
-
     });
     return schema;
   },
 
-  date: (schema, joi) => {
+  date: function date(schema, joi) {
     if (joi._flags.timestamp) {
       schema.type = 'integer';
       return schema;
@@ -44,22 +59,15 @@ let TYPES = {
     return schema;
   },
 
-  any: (schema) => {
-    schema.type = [
-      "array",
-      "boolean",
-      'number',
-      "object",
-      'string',
-      "null"
-    ];
+  any: function any(schema) {
+    schema.type = ["array", "boolean", 'number', "object", 'string', "null"];
     return schema;
   },
 
-  array: (schema, joi, transformer) => {
+  array: function array(schema, joi, transformer) {
     schema.type = 'array';
 
-    joi._tests.forEach((test) => {
+    joi._tests.forEach(function (test) {
       switch (test.name) {
         case 'unique':
           schema.uniqueItems = true;
@@ -78,10 +86,12 @@ let TYPES = {
 
     if (joi._inner) {
       if (joi._inner.ordereds.length) {
-        schema.ordered = joi._inner.ordereds.map((item) => convert(item, transformer));
+        schema.ordered = joi._inner.ordereds.map(function (item) {
+          return convert(item, transformer);
+        });
       }
 
-      let list;
+      var list = void 0;
       if (joi._inner.inclusions.length) {
         list = joi._inner.inclusions;
       } else if (joi._inner.requireds.length) {
@@ -96,21 +106,21 @@ let TYPES = {
     return schema;
   },
 
-  binary: (schema, joi) => {
+  binary: function binary(schema, joi) {
     schema.type = 'string';
     schema.contentMediaType = joi._meta.length > 0 && joi._meta[0].contentMediaType ? joi._meta[0].contentMediaType : 'text/plain';
     schema.contentEncoding = joi._flags.encoding ? joi._flags.encoding : 'binary';
     return schema;
   },
 
-  boolean: (schema) => {
+  boolean: function boolean(schema) {
     schema.type = 'boolean';
     return schema;
   },
 
-  number: (schema, joi) => {
+  number: function number(schema, joi) {
     schema.type = 'number';
-    joi._tests.forEach((test) => {
+    joi._tests.forEach(function (test) {
       switch (test.name) {
         case 'integer':
           schema.type = 'integer';
@@ -130,9 +140,9 @@ let TYPES = {
           schema.maximum = test.arg;
           break;
         case 'precision':
-          let multipleOf;
+          var multipleOf = void 0;
           if (test.arg > 1) {
-            multipleOf = JSON.parse('0.' + '0'.repeat((test.arg - 1)) + '1');
+            multipleOf = JSON.parse('0.' + '0'.repeat(test.arg - 1) + '1');
           } else {
             multipleOf = 1;
           }
@@ -143,17 +153,17 @@ let TYPES = {
     return schema;
   },
 
-  string: (schema, joi) => {
+  string: function string(schema, joi) {
     schema.type = 'string';
 
-    joi._tests.forEach((test) => {
+    joi._tests.forEach(function (test) {
       switch (test.name) {
         case 'email':
           schema.format = 'email';
           break;
         case 'regex':
           // for backward compatibility
-          const arg = test.arg;
+          var arg = test.arg;
 
           // This is required for backward compatibility
           // Location "pattern" had changed since Joi v9.0.0
@@ -163,8 +173,8 @@ let TYPES = {
           // before Joi v9: test.arg
           // since Joi v9: test.arg.pattern
 
-          const pattern = arg && arg.pattern ? arg.pattern : arg;
-          schema.pattern = String(pattern).replace(/^\//,'').replace(/\/$/,'');
+          var pattern = arg && arg.pattern ? arg.pattern : arg;
+          schema.pattern = String(pattern).replace(/^\//, '').replace(/\/$/, '');
           break;
         case 'min':
           schema.minLength = test.arg;
@@ -184,26 +194,22 @@ let TYPES = {
     return schema;
   },
 
-  object: (schema, joi, transformer) => {
+  object: function object(schema, joi, transformer) {
     schema.type = 'object';
     schema.properties = {};
     schema.additionalProperties = Boolean(joi._flags.allowUnknown || !joi._inner.children);
-    schema.patterns = joi._inner.patterns.map((pattern) => {
-      return {regex: pattern.regex, rule: convert(pattern.rule, transformer)};
+    schema.patterns = joi._inner.patterns.map(function (pattern) {
+      return { regex: pattern.regex, rule: convert(pattern.rule, transformer) };
     });
 
     if (!joi._inner.children) {
       return schema;
     }
 
-    joi._inner.children.forEach((property) => {
-      if(property.schema._flags.presence !== 'forbidden') {
+    joi._inner.children.forEach(function (property) {
+      if (property.schema._flags.presence !== 'forbidden') {
         schema.properties[property.key] = convert(property.schema, transformer);
-        if (
-            (property.schema._flags.presence === 'required') ||
-            (property.schema._settings && property.schema._settings.presence === 'required'
-                && property.schema._flags.presence !== 'optional')
-        ) {
+        if (property.schema._flags.presence === 'required' || property.schema._settings && property.schema._settings.presence === 'required' && property.schema._flags.presence !== 'optional') {
           schema.required = schema.required || [];
           schema.required.push(property.key);
         }
@@ -222,22 +228,24 @@ let TYPES = {
  * @param {TransformFunction} [transformer=null]
  * @returns {JSONSchema}
  */
-export default function convert(joi,transformer=null) {
+function convert(joi) {
+  var transformer = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
-  assert('object'===typeof joi && true === joi.isJoi, 'requires a joi schema object');
 
-  assert(joi._type, 'joi schema object must have a type');
+  (0, _assert2.default)('object' === (typeof joi === 'undefined' ? 'undefined' : _typeof(joi)) && true === joi.isJoi, 'requires a joi schema object');
 
-  if(!TYPES[joi._type]){
-    throw new Error(`sorry, do not know how to convert unknown joi type: "${joi._type}"`);
+  (0, _assert2.default)(joi._type, 'joi schema object must have a type');
+
+  if (!TYPES[joi._type]) {
+    throw new Error('sorry, do not know how to convert unknown joi type: "' + joi._type + '"');
   }
 
-  if(transformer){
-    assert('function'===typeof transformer, 'transformer must be a function');
+  if (transformer) {
+    (0, _assert2.default)('function' === typeof transformer, 'transformer must be a function');
   }
 
   // JSON Schema root for this type.
-  let schema = {};
+  var schema = {};
 
   // Copy over the details that all schemas may have...
   if (joi._description) {
@@ -245,7 +253,9 @@ export default function convert(joi,transformer=null) {
   }
 
   if (joi._examples && joi._examples.length > 0) {
-    schema.examples = joi._examples.map(e => e.value);
+    schema.examples = joi._examples.map(function (e) {
+      return e.value;
+    });
   }
 
   if (joi._examples && joi._examples.length === 1) {
@@ -265,23 +275,20 @@ export default function convert(joi,transformer=null) {
   }
 
   if (joi._valids && joi._valids._set && (joi._valids._set.size || joi._valids._set.length)) {
-    if(Array.isArray(joi._inner.children) || !joi._flags.allowOnly) {
+    if (Array.isArray(joi._inner.children) || !joi._flags.allowOnly) {
       return {
-        'anyOf': [
-          {
-            'type': joi._type,
-            'enum': [...joi._valids._set]
-          },
-          TYPES[joi._type](schema, joi, transformer)
-        ]
+        'anyOf': [{
+          'type': joi._type,
+          'enum': [].concat(_toConsumableArray(joi._valids._set))
+        }, TYPES[joi._type](schema, joi, transformer)]
       };
     }
-    schema['enum']=[...joi._valids._set];
+    schema['enum'] = [].concat(_toConsumableArray(joi._valids._set));
   }
 
-  let result = TYPES[joi._type](schema, joi, transformer);
+  var result = TYPES[joi._type](schema, joi, transformer);
 
-  if(transformer){
+  if (transformer) {
     result = transformer(result, joi);
   }
 
@@ -305,3 +312,4 @@ convert.TYPES = TYPES;
  * JSON Schema Object
  * @typedef {object} JSONSchema
  */
+//# sourceMappingURL=index.js.map
